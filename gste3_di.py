@@ -1,32 +1,260 @@
 from src import pymcss as mc
 
+import pandas as pd
+from pathlib import Path
+from shutil import rmtree
+from os import mkdir
+from shutil import move
+
+OUT = Path("TEST/")
+
 # MCMC Parameters:
 PDB = "GSTE3-Dimerization_Interface/GSTE3.pdb"
 TEMP = 0.7
 N_ITER = 1500
 
+ALLOWED_MUTATIONS={
+    51: {
+        "A": 1,
+        "P": 30,
+        "R": 4,
+        "S": 1
+    },
+    52: {
+        "E": 1,
+        "F": 4,
+        "L": 4,
+        "M": 3,
+        "Q": 23,
+        "S": 1
+    },
+    63: {
+        "A": 3,
+        "E": 1,
+        "F": 13,
+        "H": 5,
+        "K": 2,
+        "L": 2,
+        "N": 1,
+        "P": 4,
+        "S": 1,
+        "T": 2,
+        "Y": 2
+    },
+    65: {
+        "I": 18,
+        "L": 15,
+        "V": 2,
+        "Y": 1
+    },
+    66: {
+        "A": 2,
+        "C": 1,
+        "G": 1,
+        "H": 1,
+        "I": 4,
+        "S": 3,
+        "T": 1,
+        "V": 3,
+        "W": 20
+    },
+    67: {
+        "D": 14,
+        "E": 21,
+        "Q": 1
+    },
+    69: {
+        "H": 14,
+        "I": 2,
+        "L": 4,
+        "R": 11,
+        "V": 5
+    },
+    70: {
+        "A": 29,
+        "I": 4,
+        "S": 2,
+        "V": 1
+    },
+    74: {
+        "F": 2,
+        "H": 2,
+        "Y": 32
+    },
+    77: {
+        "A": 3,
+        "D": 6,
+        "E": 17,
+        "K": 1,
+        "N": 1,
+        "Q": 1,
+        "R": 2,
+        "S": 5
+    },
+    90: {
+        "F": 1,
+        "H": 2,
+        "I": 2,
+        "L": 13,
+        "P": 15,
+        "V": 2,
+        "Y": 1
+    },
+    91: {
+        "A": 2,
+        "E": 3,
+        "F": 1,
+        "H": 1,
+        "K": 5,
+        "L": 11,
+        "Q": 8,
+        "R": 1,
+        "V": 4
+    },
+    94: {
+        "A": 31,
+        "I": 1,
+        "M": 1,
+        "R": 1,
+        "S": 2
+    },
+    98: {
+        "A": 2,
+        "E": 6,
+        "H": 1,
+        "I": 4,
+        "N": 1,
+        "Q": 21,
+        "T": 1
+    },
+    101: {
+        "A": 1,
+        "D": 1,
+        "E": 9,
+        "F": 3,
+        "H": 10,
+        "L": 1,
+        "Q": 1,
+        "Y": 10
+    },
+    102: {
+        "F": 22,
+        "I": 1,
+        "L": 2,
+        "R": 4,
+        "W": 4,
+        "Y": 3
+    },
+    104: {
+        "A": 2,
+        "C": 4,
+        "F": 3,
+        "H": 3,
+        "L": 4,
+        "M": 9,
+        "N": 1,
+        "Q": 1,
+        "S": 7,
+        "T": 2
+    },
+    105: {
+        "A": 2,
+        "F": 1,
+        "G": 20,
+        "K": 1,
+        "L": 1,
+        "M": 1,
+        "S": 9,
+        "T": 1
+    },
+    144: {
+        "A": 1,
+        "C": 1,
+        "E": 4,
+        "F": 22,
+        "I": 1,
+        "L": 1,
+        "V": 2,
+        "W": 3,
+        "Y": 1
+    }
+}
+
+# Rosetta Parameters:
 INTERFACE_ANALYZER = "XML/InterfaceAnalyzerMover.xml"
-
-MUTATE = "XML/Mutate_homodimer+InterfaceAnalyzerMover.xml"
-
-MUTATE_FMT = """# Rosetta Options:
--parser
-    -script_vars resi=%d new_res=%s
+INTERFACE_ANALYZER_FMT="""# Rosetta Options
 -overwrite
 """
+MUTATE = "XML/Mutate_homodimer+InterfaceAnalyzerMover.xml"
+MUTATE_FMT = """# Rosetta Options:
+-parser
+    -script_vars resi={resi:d} new_res={resn:s}
+-nstruct 10
+-overwrite
+"""   
+    
 
 def main():
     mc.log.info("MCSS Initialization")
-    iter_scores = []
 
-    mc.rosetta_script(xml=INTERFACE_ANALYZER, pdb=PDB)
-    score = mc.read_rosetta_scores("score.sc")
-    score = score.iloc[0] # Only produced single decoy
+    try:
+        rmtree(OUT)
+    except FileNotFoundError:
+        pass
+    mkdir(OUT)
+    
+    iter_infos  = []
+    iter_scores = []
+    pdb_ref = PDB
+    
+    # Initial Sequence
+    seq = mc.get_pdb_sequence(pdb_ref)
+    Nres = len(seq) // 2 # input PDB is an homodimer
+    seq = seq[:Nres]
+    mc.log.debug(f"Using a sequence of {len(seq)} residues")
+    motif = "".join([seq[resi - 1] for resi in ALLOWED_MUTATIONS])
+    
+    # Initial Score
+    with open("InterfaceAnalyzerMover.option", "w") as file:
+        file.write(INTERFACE_ANALYZER_FMT)
+    mc.rosetta_script(xml=INTERFACE_ANALYZER, pdb=pdb_ref, options = "InterfaceAnalyzerMover.option")
+    score = mc.read_rosetta_scores("score.sc").iloc[0] # Only produced single decoy
+    iter_scores.append(score)
 
     dG = score["dG_separated"]
     mc.log.info(f"Initial dG: {dG:.3f} R.E.U.")
+    # Cols: iter_, resi, old, new, dG, ddG, accepted, temp
+    iter_infos.append([0, pd.NA, pd.NA, pd.NA, dG, pd.NA, True, TEMP, motif, seq])
 
-    seq = mc.get_pdb_sequence(PDB)
+    #for iter_ in range(1, N_ITER+1):
+    iter_ = 1
+    mc.log.info(f"Iteration {iter_}/{N_ITER}")
+
+    #1- Sequence Perturbation
+    old, resi, new = mc.select_mutation(seq, allowed_mutation=ALLOWED_MUTATIONS)
+
+    #2- Perform Mutation & Scoring
+    with open("Mutate+InterfaceAnalyzerMover.option", "w") as file:
+        file.write(MUTATE_FMT.format(resi = resi, resn = mc.THREE_LETTER_CODE[new]))
+    mc.rosetta_script(xml=MUTATE, pdb=pdb_ref, options = "Mutate+InterfaceAnalyzerMover.option")
+    score = mc.read_rosetta_scores("score.sc").sort_values("dG_separated").iloc[0] # Only select best decoy
+    iter_scores.append(score)
+    
+    new_dG = score["dG_separated"]
+    ddG = new_dG - dG
+    mc.log.info(f"dG: {new_dG:.3f} R.E.U.")
+    mc.log.info(f"ddG: {ddG:.3f} R.E.U.")
+
+    #3- Metropolis Criterion:
+    
+
+    # Cols: iter_, resi, old, new, dG, ddG, accepted, temp
+    iter_infos.append([iter_, resi, old, new, dG, ddG, True, TEMP, motif, seq])
+    
+
+    
+
+
 
 
 
