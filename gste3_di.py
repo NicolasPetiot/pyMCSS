@@ -215,14 +215,12 @@ def main():
     motif = "".join([seq[resi - 1] for resi in ALLOWED_MUTATIONS])
     
     # Initial Score
-    with open("InterfaceAnalyzerMover.option", "w") as file:
-        file.write(INTERFACE_ANALYZER_FMT)
-    mc.rosetta_script(xml=INTERFACE_ANALYZER, pdb=pdb_ref, options = "InterfaceAnalyzerMover.option")
-    score = mc.read_rosetta_scores("score.sc").iloc[0] # Only produced single decoy
+    score = mc.rosetta_scripts(xml=INTERFACE_ANALYZER, pdb_in=pdb_ref, option_str=INTERFACE_ANALYZER_FMT)
     iter_scores.append(score)
 
     dG = score["dG_separated"]
     mc.log.info(f"Initial dG: {dG:.3f} R.E.U.")
+
     # Cols: iter_, resi, old, new, dG, ddG, accepted, temp
     iter_infos.append([0, pd.NA, pd.NA, pd.NA, dG, pd.NA, True, TEMP, motif, seq])
 
@@ -234,22 +232,35 @@ def main():
     old, resi, new = mc.select_mutation(seq, allowed_mutation=ALLOWED_MUTATIONS)
 
     #2- Perform Mutation & Scoring
-    with open("Mutate+InterfaceAnalyzerMover.option", "w") as file:
-        file.write(MUTATE_FMT.format(resi = resi, resn = mc.THREE_LETTER_CODE[new]))
-    mc.rosetta_script(xml=MUTATE, pdb=pdb_ref, options = "Mutate+InterfaceAnalyzerMover.option")
-    score = mc.read_rosetta_scores("score.sc").sort_values("dG_separated").iloc[0] # Only select best decoy
+    mutant = OUT / f"mutant_{str(iter_).zfill(4)}.pdb"
+    score = mc.rosetta_scripts(
+        xml=MUTATE, 
+        pdb_in=pdb_ref, 
+        option_str=MUTATE_FMT.format(resi = resi, resn = mc.THREE_LETTER_CODE[new]),
+        pdb_out= mutant,
+        sort_by="dG_separated"
+    )
     iter_scores.append(score)
-    
+
+    new_seq = mc.get_pdb_sequence(mutant)
+        
     new_dG = score["dG_separated"]
     ddG = new_dG - dG
+    
     mc.log.info(f"dG: {new_dG:.3f} R.E.U.")
     mc.log.info(f"ddG: {ddG:.3f} R.E.U.")
 
     #3- Metropolis Criterion:
-    
+    accepted = mc.metropolis_criterion(ddG, T = TEMP)
+
+    #4- Process Acceptation:
+    if accepted:
+        dG = new_dG
+        pdb_ref = str(mutant)
+        seq = new_seq
 
     # Cols: iter_, resi, old, new, dG, ddG, accepted, temp
-    iter_infos.append([iter_, resi, old, new, dG, ddG, True, TEMP, motif, seq])
+    iter_infos.append([iter_, resi, old, new, dG, ddG, accepted, TEMP, motif, seq])
     
 
     

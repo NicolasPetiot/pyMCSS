@@ -6,9 +6,8 @@ import subprocess
 
 from shutil import copyfile
 from os import remove
-from glob import glob
 
-def rosetta_scripts(xml:str, pdb_in:str, option_str:str = None, pdb_out:str = None, sc_out:str = None, options_out:str = None, sort_by:str = None, clear_pdbs = True) -> pd.DataFrame|pd.Series:
+def rosetta_scripts(xml:str, pdb_in:str, option_str:str = None, pdb_out:str = None, sc_out:str = None, options_out:str = None, sort_by:str = None, clear_pdbs = True) -> pd.Series:
     #1: Create option file (if needed)
     if option_str is not None:
         with open("tmp.options", "w") as file:
@@ -19,11 +18,11 @@ def rosetta_scripts(xml:str, pdb_in:str, option_str:str = None, pdb_out:str = No
     scores = read_rosetta_scores("score.sc")
     if sort_by is not None:
         scores = scores.sort_values(sort_by)
+    score = scores.iloc[0]
 
     #3: Saving:    
     if pdb_out is not None:
-        scores = scores.iloc[0]
-        best_decoy = scores.name
+        best_decoy = score.name
         copyfile(best_decoy + ".pdb", pdb_out)
 
     if sc_out is not None:
@@ -34,13 +33,14 @@ def rosetta_scripts(xml:str, pdb_in:str, option_str:str = None, pdb_out:str = No
 
     #4: Clearing:
     remove("tmp.options")
+    remove("score.sc")
     if clear_pdbs:
-        decoys = f"{pdb_in.removeprefix(".pdb")}_*.pdb"
-        decoys = glob(decoys)
+        decoys = scores.index
         for decoy in decoys:
+            decoy = str(decoy) + ".pdb"
             remove(decoy)
 
-    return scores 
+    return score
 
     
 
