@@ -12,3 +12,6 @@ wheels/
 # Test files
 test*
 TEST/
+
+# Rosetta-generated files:
+*.sc
