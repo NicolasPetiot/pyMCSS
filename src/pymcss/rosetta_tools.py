@@ -1,6 +1,7 @@
 from .params import logger as log
 from .params import ROSETTA_SCRIPT_CMD
 
+import pandas as pd
 import subprocess
 
 def rosetta_script(xml:str, pdb:str, options:str = None):
@@ -16,3 +17,14 @@ def rosetta_script(xml:str, pdb:str, options:str = None):
         raise ValueError("See ROSETTA-CRASH.log for details")
     
     return result
+
+def read_rosetta_scores(sc:str) -> pd.DataFrame:
+    lines = open(sc, 'r').readlines()
+    lines = [line.removeprefix("SCORE:") for line in lines if line.startswith("SCORE:")]
+
+    cols = lines[0].split()    
+    data = [line.split() for line in lines[1:]]
+
+    df = pd.DataFrame(data, columns=cols, dtype=float)
+    df = df.set_index("description")
+    return df
