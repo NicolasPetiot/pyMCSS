@@ -16,14 +16,15 @@ MUTATE_FMT = """# Rosetta Options:
 """
 
 def main():
-    mc.log.info("Initialization")
+    mc.log.info("MCSS Initialization")
     iter_scores = []
 
     mc.rosetta_script(xml=INTERFACE_ANALYZER, pdb=PDB)
     score = mc.read_rosetta_scores("score.sc")
-    dG = score["dG_separated"]
+    score = score.iloc[0] # Only produced single decoy
 
-    mc.log.info(f"Initial dG: {dG:.3f}")
+    dG = score["dG_separated"]
+    mc.log.info(f"Initial dG: {dG:.3f} R.E.U.")
 
     seq = mc.get_pdb_sequence(PDB)
 

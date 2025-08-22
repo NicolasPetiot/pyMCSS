@@ -5,11 +5,11 @@ import pandas as pd
 import subprocess
 
 def rosetta_script(xml:str, pdb:str, options:str = None):
-    cmd = f"{ROSETTA_SCRIPT_CMD} -parser:protocol ${xml} -s {pdb}"
+    cmd = f"{ROSETTA_SCRIPT_CMD} -parser:protocol {xml} -s {pdb}"
     if options is not None:
         cmd += f" @{options}"
 
-    log.info(cmd)
+    log.debug(cmd)
 
     result = subprocess.run(cmd.split(), capture_output=True, text=True)
 
@@ -25,6 +25,7 @@ def read_rosetta_scores(sc:str) -> pd.DataFrame:
     cols = lines[0].split()    
     data = [line.split() for line in lines[1:]]
 
-    df = pd.DataFrame(data, columns=cols, dtype=float)
+    df = pd.DataFrame(data, columns=cols)
     df = df.set_index("description")
+    df = df.astype(float)
     return df

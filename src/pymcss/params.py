@@ -12,7 +12,7 @@ THREE_LETTER_CODE ={'V':'VAL', 'I':'ILE', 'L':'LEU', 'E':'GLU', 'Q':'GLN',
 'R':'ARG', 'K':'LYS', 'S':'SER', 'T':'THR', 'M':'MET', 'A':'ALA',
 'G':'GLY', 'P':'PRO', 'C':'CYS'}
 
-ROSETTA_SCRIPT_CMD = ""
+ROSETTA_SCRIPT_CMD = "rosetta_scripts.default.linuxgccrelease"
 GROMACS_CMD = "gmx_d"
 GROMACS_MPI_CMD = "gmx_mpi_d"
 
