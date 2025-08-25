@@ -1,0 +1,70 @@
+<ROSETTASCRIPTS>
+	<SCOREFXNS>
+		<ScoreFunction name="ligand_soft_rep" weights="ligand_soft_rep">
+		</ScoreFunction>
+		<ScoreFunction name="hard_rep" weights="ligand">
+		</ScoreFunction>
+	</SCOREFXNS>
+	A movemap builder constructs a movemap. A movemap is a 2xN table of true/false values, where N is the number of residues your protein/ligand complex. 
+	The two columns are for backbone and side-chain movements. The MovemapBuilder combines previously constructed backbone and side-chain interfaces.
+	<LIGAND_AREAS>
+		<LigandArea name="inhibitor_dock_sc" chain="C" cutoff="6.0" add_nbr_radius="true" all_atom_mode="false"/>
+		<LigandArea name="inhibitor_final_sc" chain="C" cutoff="6.0" add_nbr_radius="true" all_atom_mode="false"/>
+		<LigandArea name="inhibitor_final_bb" chain="C" cutoff="7.0" add_nbr_radius="false" all_atom_mode="true" Calpha_restraints="0.3"/>
+	</LIGAND_AREAS>
+	<INTERFACE_BUILDERS>
+		<InterfaceBuilder name="side_chain_for_docking" ligand_areas="inhibitor_dock_sc"/>
+		<InterfaceBuilder name="side_chain_for_final" ligand_areas="inhibitor_final_sc"/>
+		<InterfaceBuilder name="backbone" ligand_areas="inhibitor_final_bb" extension_window="3"/>
+	</INTERFACE_BUILDERS>
+	<MOVEMAP_BUILDERS>
+		<MoveMapBuilder name="docking" sc_interface="side_chain_for_docking" minimize_water="false"/>
+		<MoveMapBuilder name="final" sc_interface="side_chain_for_final" bb_interface="backbone" minimize_water="false"/>
+	</MOVEMAP_BUILDERS>
+
+
+	<SCORINGGRIDS ligand_chain="C" width="15">
+		<ClassicGrid grid_name="classic" weight="1.0"/>
+	</SCORINGGRIDS>
+
+
+	<MOVERS>
+		The Transform mover is designed to replace the Translate, Rotate, and SlideTogether movers, and typically exhibits faster convergence 
+		and better scientific performance than these movers. The Transform mover performs a monte carlo search of the ligand binding site using
+		precomputed scoring grids. 
+		(https://docs.rosettacommons.org/docs/latest/scripting_documentation/RosettaScripts/Movers/movers_pages/TransformMover#:~:text=The%20Transform%20mover%20is%20designed,site%20using%20precomputed%20scoring%20grids.)
+		WARNING: requires scoring grid
+		<Transform name="transform" chain="C" box_size="7.0" move_distance="0.2" angle="20" cycles="500" repeats="1" temperature="5"/>
+		
+		<HighResDocker name="high_res_docker" cycles="6" repack_every_Nth="3" scorefxn="ligand_soft_rep" movemap_builder="docking"/>
+
+		<FinalMinimizer name="final" scorefxn="hard_rep" movemap_builder="final"/>
+
+		<InterfaceScoreCalculator name="add_scores" chains="C" scorefxn="hard_rep"/> 
+
+        <ConstraintSetMover name="ser10_gsh_constr" add_constraints="true"  cst_file="GSH-Ser10_constraint.cst"/>
+        <ClearConstraintsMover name="default_constr" />
+	</MOVERS>
+
+
+	<PROTOCOLS>
+        1 - Add constraints between GSH's S and Ser10
+        <Add mover_name="ser10_gsh_constr" />
+
+		2- monte carlo search of the ligand binding site using precomputed scoring grids.
+		<Add mover_name="transform"/>
+
+		3 - performs cycles of rotamer trials or repacking, coupled with small perturbations of the ligand.
+		<Add mover_name="high_res_docker"/>
+
+		4 - Do a gradient based minimization of the final docked pose.
+		<Add mover_name="final"/>
+
+        5 - Remove constraints before scoring
+        <Add mover_name="default_constr"/>
+
+		6 - Scoring
+		<Add mover_name="add_scores"/>
+	</PROTOCOLS>
+	<OUTPUT />
+</ROSETTASCRIPTS>

@@ -13,5 +13,8 @@ wheels/
 test*
 TEST/
 
+PRODUCTION/
+
 # Rosetta-generated files:
+ROSETTA_CRASH.log
 *.sc

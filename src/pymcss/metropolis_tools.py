@@ -121,4 +121,4 @@ def get_pdb_sequence(filename, unknown_accepted = False) -> str:
         
         raise ValueError(f"Unknown residue(s): {set(unknowns)}")
     
-    return seq
+    return "".join(seq)

@@ -1,15 +1,14 @@
 from .params import logger as log
 from .params import ROSETTA_SCRIPT_CMD
+from .files import rm, cp
 
 import pandas as pd
 import subprocess
 
-from shutil import copyfile
-from os import remove
-
 def rosetta_scripts(xml:str, pdb_in:str, option_str:str = None, pdb_out:str = None, sc_out:str = None, options_out:str = None, sort_by:str = None, clear_pdbs = True) -> pd.Series:
     #1: Create option file (if needed)
     if option_str is not None:
+        log.debug("Writing tmp.options")
         with open("tmp.options", "w") as file:
             file.write(option_str)
 
@@ -17,28 +16,27 @@ def rosetta_scripts(xml:str, pdb_in:str, option_str:str = None, pdb_out:str = No
     _ = call_xml(xml, pdb_in, options="tmp.options" if option_str is not None else None)
     scores = read_rosetta_scores("score.sc")
     if sort_by is not None:
+        log.debug("Sorting scores by:" + sort_by)
         scores = scores.sort_values(sort_by)
     score = scores.iloc[0]
 
     #3: Saving:    
     if pdb_out is not None:
-        best_decoy = score.name
-        copyfile(best_decoy + ".pdb", pdb_out)
+        best_decoy = f"{score.name}.pdb"
+        cp(best_decoy, pdb_out)
 
     if sc_out is not None:
-        copyfile("score.sc", sc_out)
+        cp("score.sc", sc_out)
 
     if options_out is not None:
-        copyfile("tmp.options", options_out)
+        cp("tmp.options", options_out)
 
     #4: Clearing:
-    remove("tmp.options")
-    remove("score.sc")
+    rm("tmp.options")
+    rm("score.sc")
     if clear_pdbs:
-        decoys = scores.index
-        for decoy in decoys:
-            decoy = str(decoy) + ".pdb"
-            remove(decoy)
+        for decoy in scores.index:
+            rm(str(decoy) + ".pdb")
 
     return score
 
