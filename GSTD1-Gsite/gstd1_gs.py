@@ -1,4 +1,5 @@
 import pymcss as mc
+from pymcss.rosetta import RestrainedDocking, MutateRestrainedDocking
 
 import pandas as pd
 from pathlib import Path
@@ -12,7 +13,7 @@ TEMP = 0.1
 N_ITER = 1
 
 # Rosetta Parameters:
-DOCKING = "../XML/RestrainedDocking.xml"
+DOCKING = RestrainedDocking
 DOCKING_FMT="""# Rosetta Options
 #the packing options allow Rosetta to sample additional rotamers for
 #protein sidechain angles chi 1 (ex1) and chi 2 (ex2) 
@@ -30,9 +31,12 @@ DOCKING_FMT="""# Rosetta Options
 #This flag restores certain parameters to previously published values
 -mistakes
     -restore_pre_talaris_2013_behavior true 
+
+-parser
+    -script_vars constraint=GSH-Ser10_constraint.cst
 """
 
-MUTATE = "../XML/Mutate+RestrainedDocking.xml"
+MUTATE = MutateRestrainedDocking
 MUTATE_FMT = """# Rosetta Options:
 -parser
     -script_vars resi={resi:d} new_res={resn:s}

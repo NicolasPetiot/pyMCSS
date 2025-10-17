@@ -5,6 +5,8 @@
 		<ScoreFunction name="hard_rep" weights="ligand">
 		</ScoreFunction>
 	</SCOREFXNS>
+
+
 	A movemap builder constructs a movemap. A movemap is a 2xN table of true/false values, where N is the number of residues your protein/ligand complex. 
 	The two columns are for backbone and side-chain movements. The MovemapBuilder combines previously constructed backbone and side-chain interfaces.
 	<LIGAND_AREAS>
@@ -42,14 +44,14 @@
 
 		<InterfaceScoreCalculator name="add_scores" chains="C" scorefxn="hard_rep"/> 
 
-        <ConstraintSetMover name="ser10_gsh_constr" add_constraints="true"  cst_file="GSH-Ser10_constraint.cst"/>
+        <ConstraintSetMover name="constr" add_constraints="true"  cst_file="%%constraint%%"/>
         <ClearConstraintsMover name="default_constr" />
 	</MOVERS>
 
 
 	<PROTOCOLS>
-        1 - Add constraints between GSH's S and Ser10
-        <Add mover_name="ser10_gsh_constr" />
+        1 - Add constraints
+        <Add mover_name="constr" />
 
 		2- monte carlo search of the ligand binding site using precomputed scoring grids.
 		<Add mover_name="transform"/>

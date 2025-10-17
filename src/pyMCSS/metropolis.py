@@ -1,4 +1,5 @@
-from .params import logger as log
+
+from .log import log
 from .params import ONE_LETTER_CODE, THREE_LETTER_CODE, RESIDUE_NAME
 
 from math import exp
@@ -33,7 +34,7 @@ def metropolis_criterion(delta:float, T=2.5) -> bool:
         acceptation_proba = exp(-delta/T)
         accepted = uniform(0, 1) < acceptation_proba
     log.debug(f"Acceptation probability: {acceptation_proba:.6f}")
-    log.info(f"Mutation accepted" if accepted else "Mutation rejected")
+    log.debug(f"Mutation accepted" if accepted else "Mutation rejected")
 
     return accepted
 
@@ -100,7 +101,7 @@ def select_mutation(seq:str, allowed_mutation = None, force_change = False) -> t
         allowed_aa = [aa for aa in allowed_aa if aa != old_aa]
 
     new_aa = choices(allowed_aa, weights)[0] # NOTE: Relative weights are handled by this function!
-    log.info(f"Mutation selected: {old_aa}{resi}{new_aa}")
+    log.debug(f"Mutation selected: {old_aa}{resi}{new_aa}")
     return old_aa, resi, new_aa
 
 def get_pdb_sequence(filename, unknown_accepted = False) -> str:
@@ -122,3 +123,4 @@ def get_pdb_sequence(filename, unknown_accepted = False) -> str:
         raise ValueError(f"Unknown residue(s): {set(unknowns)}")
     
     return "".join(seq)
+

@@ -12,23 +12,7 @@ THREE_LETTER_CODE ={'V':'VAL', 'I':'ILE', 'L':'LEU', 'E':'GLU', 'Q':'GLN',
 'R':'ARG', 'K':'LYS', 'S':'SER', 'T':'THR', 'M':'MET', 'A':'ALA',
 'G':'GLY', 'P':'PRO', 'C':'CYS'}
 
-ROSETTA_SCRIPT_CMD = "rosetta_scripts.default.linuxgccrelease"
-GROMACS_CMD = "gmx_d"
-GROMACS_MPI_CMD = "gmx_mpi_d"
-
-
 # Logging params:
-import logging
-
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
-
-formatter = logging.Formatter(
-    fmt="[%(asctime)s %(levelname)s] %(message)s",
-    datefmt="%Y-%m-%d %H:%M:%S"
-)
-
-handler = logging.StreamHandler()
-handler.setFormatter(formatter)
-logger.addHandler(handler)
-logger.propagate = False
+LOG_LVL="DEBUG"
+SHOW_STREAM = True
+LOG_FILENAME = None
